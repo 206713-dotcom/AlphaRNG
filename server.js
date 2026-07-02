@@ -2755,12 +2755,12 @@ function collectEmailErrorParts(error, parts, depth) {
 }
 
 async function sendTransactionalEmail(message) {
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return sendSmtpEmail(message);
-  }
-
   if (process.env.RESEND_API_KEY && process.env.TWO_FACTOR_FROM_EMAIL && typeof fetch === "function") {
     return sendResendEmail(message);
+  }
+
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return sendSmtpEmail(message);
   }
 
   return false;
@@ -2781,7 +2781,10 @@ async function sendResendEmail({ to, subject, text, html }) {
       html,
     }),
   });
-  if (!response.ok) throw new Error(`Email provider returned ${response.status}`);
+  if (!response.ok) {
+    const providerText = await response.text().catch(() => "");
+    throw new Error(`Resend returned ${response.status}: ${providerText.slice(0, 500)}`);
+  }
   return true;
 }
 
