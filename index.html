@@ -399,19 +399,19 @@
         <div class="page-heading split-heading">
           <div>
             <span class="eyebrow">PLAYER IDENTITY</span>
-            <h1>Account & global setup</h1>
-            <p>Sign in with a magic email link. Your account, progress, and leaderboard identity are saved on the server.</p>
-          </div>
-          <div class="account-status-card" id="accountState">
-            <span>STATUS</span>
-            <strong>Guest mode</strong>
-            <small>Local device only</small>
+            <h1>Account sign in</h1>
+            <p>Use a private magic email link to save progress and appear on the leaderboard.</p>
           </div>
         </div>
 
         <div class="account-layout">
           <section class="card auth-card">
             <div class="panel-title"><div><span>@</span><h2>Sign in</h2></div></div>
+            <div class="account-status-card account-status-inline" id="accountState">
+              <span>STATUS</span>
+              <strong>Guest mode</strong>
+              <small>Local device only</small>
+            </div>
             <p class="auth-copy" id="authModeText">Enter your email and AlphaRNG will send a private magic login link. No password required.</p>
 
             <form class="auth-form" id="authForm">
@@ -424,9 +424,6 @@
                 <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com">
               </label>
               <p id="authPasswordHelp" class="magic-privacy-note">Magic links expire quickly and are verified by the server. AlphaRNG never stores passwords in the browser.</p>
-              <div class="two-step-row magic-link-row">
-                <button id="sendCodeButton" type="button">Send magic link</button>
-              </div>
               <p class="two-step-hint" id="twoStepHint">Use any valid email address, then check your inbox for the sign-in link.</p>
               <div class="auth-actions">
                 <button id="signInButton" type="submit">Send magic link</button>

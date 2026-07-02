@@ -5357,7 +5357,7 @@
         renderLeaderboard();
       });
     });
-    dom.sendCodeButton.addEventListener("click", sendTwoStepCode);
+    dom.sendCodeButton?.addEventListener("click", sendTwoStepCode);
     dom.authForm.addEventListener("submit", signInPlayer);
     dom.signOutButton.addEventListener("click", signOutPlayer);
     dom.saveApiBaseButton?.addEventListener("click", saveBackendUrl);
