@@ -2730,11 +2730,28 @@ async function sendMagicLinkEmail(email, magicLink) {
 }
 
 function safeEmailError(error) {
-  const raw = error && error.message ? error.message : String(error || "unknown email error");
+  const parts = [];
+  collectEmailErrorParts(error, parts, 0);
+  const raw = parts.length ? parts.join(" | ") : String(error || "unknown email error");
   return raw
     .replace(/token=[^&\s]+/gi, "token=[redacted]")
     .replace(/[A-Za-z0-9_-]{40,}/g, "[redacted]")
-    .slice(0, 600);
+    .slice(0, 1200);
+}
+
+function collectEmailErrorParts(error, parts, depth) {
+  if (!error || depth > 2) return;
+  const name = error.name || "Error";
+  const message = error.message || String(error);
+  const code = error.code ? ` code=${error.code}` : "";
+  const command = error.command ? ` command=${error.command}` : "";
+  const host = error.hostname || error.host ? ` host=${error.hostname || error.host}` : "";
+  const port = error.port ? ` port=${error.port}` : "";
+  parts.push(`${name}${code}${command}${host}${port}: ${message}`);
+  if (Array.isArray(error.errors)) {
+    for (const inner of error.errors.slice(0, 4)) collectEmailErrorParts(inner, parts, depth + 1);
+  }
+  if (error.cause) collectEmailErrorParts(error.cause, parts, depth + 1);
 }
 
 async function sendTransactionalEmail(message) {
