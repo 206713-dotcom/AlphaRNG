@@ -2956,7 +2956,8 @@ body {
 
 .account-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
+  grid-template-columns: minmax(320px, 760px);
+  justify-content: center;
   gap: 22px;
 }
 

@@ -5360,7 +5360,7 @@
     dom.sendCodeButton.addEventListener("click", sendTwoStepCode);
     dom.authForm.addEventListener("submit", signInPlayer);
     dom.signOutButton.addEventListener("click", signOutPlayer);
-    dom.saveApiBaseButton.addEventListener("click", saveBackendUrl);
+    dom.saveApiBaseButton?.addEventListener("click", saveBackendUrl);
     dom.badgeSearch.addEventListener("input", () => {
       searchTerm = dom.badgeSearch.value.trim().toLowerCase();
       clearTimeout(collectionSearchTimer);
@@ -6927,7 +6927,7 @@
 
     if (document.activeElement !== dom.displayNameInput) dom.displayNameInput.value = signedIn ? state.account.displayName : dom.displayNameInput.value;
     if (document.activeElement !== dom.emailInput) dom.emailInput.value = signedIn ? state.account.email : dom.emailInput.value;
-    if (document.activeElement !== dom.apiBaseInput) dom.apiBaseInput.value = configuredApiBase;
+    if (dom.apiBaseInput && document.activeElement !== dom.apiBaseInput) dom.apiBaseInput.value = configuredApiBase;
 
     dom.authModeText.textContent = apiBase
       ? backendHealth?.emailConfigured
@@ -6947,11 +6947,13 @@
 
     dom.signInButton.textContent = signedIn ? "Send another magic link" : "Send magic link";
     dom.signOutButton.disabled = !signedIn;
-    dom.integrationStatus.textContent = apiBase ? backendHealth?.emailConfigured ? "Magic links live" : "Email setup needed" : configuredApiBase ? "Configured, offline" : "Server required";
-    dom.leaderboardIntegrationStatus.textContent = apiBase ? "Live backend" : configuredApiBase ? "Configured, offline" : "Local demo";
-    dom.geminiStatus.textContent = apiBase
-      ? backendHealth?.geminiConfigured ? "Gemini active on server" : "Server fallback until GEMINI_API_KEY"
-      : "Local lexicon fallback";
+    if (dom.integrationStatus) dom.integrationStatus.textContent = apiBase ? backendHealth?.emailConfigured ? "Magic links live" : "Email setup needed" : configuredApiBase ? "Configured, offline" : "Server required";
+    if (dom.leaderboardIntegrationStatus) dom.leaderboardIntegrationStatus.textContent = apiBase ? "Live backend" : configuredApiBase ? "Configured, offline" : "Local demo";
+    if (dom.geminiStatus) {
+      dom.geminiStatus.textContent = apiBase
+        ? backendHealth?.geminiConfigured ? "Gemini active on server" : "Server fallback until GEMINI_API_KEY"
+        : "Local lexicon fallback";
+    }
   }
 
   function getLeaderboardRows() {
@@ -7146,6 +7148,7 @@
   }
 
   async function saveBackendUrl() {
+    if (!dom.apiBaseInput) return;
     const cleanUrl = normalizeBackendUrl(dom.apiBaseInput.value);
     state.settings.apiBase = cleanUrl;
     if (cleanUrl) {
