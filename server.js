@@ -2774,7 +2774,7 @@ async function sendResendEmail({ to, subject, text, html }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: getEmailFromHeader(),
+      from: getResendFromHeader(),
       to,
       subject,
       text,
@@ -2786,6 +2786,12 @@ async function sendResendEmail({ to, subject, text, html }) {
     throw new Error(`Resend returned ${response.status}: ${providerText.slice(0, 500)}`);
   }
   return true;
+}
+
+function getResendFromHeader() {
+  return process.env.TWO_FACTOR_FROM_EMAIL ||
+    process.env.RESEND_FROM_EMAIL ||
+    "AlphaRNG <onboarding@resend.dev>";
 }
 
 async function sendSmtpEmail({ to, subject, text, html }) {
