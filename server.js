@@ -2697,8 +2697,10 @@ async function sendTwoFactorEmail(email, code) {
       `,
     });
   } catch (error) {
-    console.warn("Could not send 2-step email; falling back to dev code.", error.message);
-    console.log(`[AlphaRNG dev 2-step] ${email}: ${code}`);
+    console.warn(`Could not send 2-step email: ${safeEmailError(error)}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[AlphaRNG dev 2-step] ${email}: ${code}`);
+    }
     return false;
   }
 }
@@ -2719,10 +2721,20 @@ async function sendMagicLinkEmail(email, magicLink) {
       `,
     });
   } catch (error) {
-    console.warn("Could not send magic link email; falling back to dev link.", error.message);
-    console.log(`[AlphaRNG dev magic link] ${email}: ${magicLink}`);
+    console.warn(`Could not send magic link email: ${safeEmailError(error)}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[AlphaRNG dev magic link] ${email}: ${magicLink}`);
+    }
     return false;
   }
+}
+
+function safeEmailError(error) {
+  const raw = error && error.message ? error.message : String(error || "unknown email error");
+  return raw
+    .replace(/token=[^&\s]+/gi, "token=[redacted]")
+    .replace(/[A-Za-z0-9_-]{40,}/g, "[redacted]")
+    .slice(0, 600);
 }
 
 async function sendTransactionalEmail(message) {
