@@ -4030,6 +4030,89 @@ body {
   background: #f5f9ff;
 }
 
+.badge-card,
+.cutscene-index-card,
+.upgrade-section,
+.leaderboard-row,
+.earned-badge {
+  content-visibility: auto;
+}
+
+.badge-card { contain-intrinsic-size: 250px; }
+.cutscene-index-card { contain-intrinsic-size: 190px; }
+.upgrade-section { contain-intrinsic-size: 420px; }
+.leaderboard-row,
+.earned-badge { contain-intrinsic-size: 82px; }
+
+.badge-feed-summary {
+  border-style: dashed;
+  opacity: .92;
+}
+
+.badge-feed-summary .badge-burst-icon {
+  color: #0b6cff;
+  background: #eef6ff;
+  font-size: 14px;
+}
+
+.grid-progress-note {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px dashed rgba(11,108,255,.24);
+  border-radius: 18px;
+  color: #61718b;
+  background: rgba(255,255,255,.72);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+body.low-power-mode::before,
+body.low-power-mode::after {
+  animation: none !important;
+  opacity: .18;
+}
+
+body.low-power-mode .topbar,
+body.low-power-mode .sidebar,
+body.low-power-mode .mobile-nav,
+body.low-power-mode .card,
+body.low-power-mode .result-card,
+body.low-power-mode .badge-feed-panel,
+body.low-power-mode .rare-cutscene,
+body.low-power-mode .badge-cutscene {
+  backdrop-filter: none !important;
+}
+
+body.low-power-mode .roll-console,
+body.low-power-mode .card,
+body.low-power-mode .badge-card,
+body.low-power-mode .upgrade-node {
+  box-shadow: var(--shadow-soft);
+}
+
+body.low-power-mode .roll-console.rolling::before,
+body.low-power-mode .roll-console.rolling::after,
+body.low-power-mode .roll-console.rolling .sequence-stage::before,
+body.low-power-mode .roll-console.rolling .dice-lane::before,
+body.low-power-mode .cutscene-stars,
+body.low-power-mode .cutscene-noise,
+body.low-power-mode .cutscene-beam,
+body.low-power-mode .cutscene-ring,
+body.low-power-mode .badge-scene-orbit {
+  animation: none !important;
+}
+
+body.low-power-mode .letter-tile.shuffling {
+  animation-duration: .18s !important;
+  filter: none;
+}
+
+body.low-power-mode .letter-tile.glowing {
+  animation-name: tileRevealFancy;
+  animation-iteration-count: 1;
+}
+
 @media (max-width: 900px) {
   .chamber-guide {
     grid-template-columns: 1fr;

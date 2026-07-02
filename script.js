@@ -12,6 +12,15 @@
   const BACKEND_CONFIG_KEY = "alpharng_backend_url_v1";
   const DEFAULT_API_BASE = location.protocol.startsWith("http") ? "/api" : "";
   const ADMIN_EMAILS = new Set(["206713@gardenschool.edu.my"]);
+  const PREFERS_REDUCED_MOTION = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const MOBILE_VIEWPORT = typeof window.matchMedia === "function" && window.matchMedia("(max-width: 720px)").matches;
+  const LOW_POWER_MODE = Boolean(
+    PREFERS_REDUCED_MOTION ||
+    MOBILE_VIEWPORT ||
+    (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+  );
+  const BADGE_FEED_LIMIT = LOW_POWER_MODE ? 10 : 18;
   const BASE_GLYPHS = 25;
   const DEFAULT_COOLDOWN_MS = 30 * 60 * 1000;
   const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -5154,6 +5163,10 @@
   let backendOnline = false;
   let backendHealth = null;
   let progressSaveTimer = null;
+  let collectionSearchTimer = null;
+  let lastToneAt = 0;
+  let collectionRenderToken = 0;
+  let cutsceneRenderToken = 0;
   const badgeOddsCache = new Map();
   let collapsedUpgradeSections = new Set(UPGRADE_SECTIONS.filter((section) => !section.defaultOpen).map((section) => section.id));
 
@@ -5161,21 +5174,30 @@
 
   async function init() {
     cacheDom();
+    document.body.classList.toggle("low-power-mode", LOW_POWER_MODE);
     bindEvents();
     handleAuthRedirectNotice();
     activePage = getPageFromHash() || "roll";
     showPage(activePage, false);
-    renderPlaceholderTiles();
-    renderAll();
     startCountdown();
 
     if (state.lastResult) {
       renderLastResult(state.lastResult);
       renderTiles(state.lastResult, state.lastResult.glowingIndexes || []);
       dom.sequencePrompt.textContent = `Last signal: ${formatRollSequence(state.lastResult)}`;
+    } else {
+      renderPlaceholderTiles();
     }
 
-    bootstrapBackend();
+    scheduleBackgroundTask(bootstrapBackend, 350);
+  }
+
+  function scheduleBackgroundTask(callback, fallbackDelay = 0) {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(callback, { timeout: 2500 });
+      return;
+    }
+    setTimeout(callback, fallbackDelay);
   }
 
   async function bootstrapBackend() {
@@ -5341,7 +5363,8 @@
     dom.saveApiBaseButton.addEventListener("click", saveBackendUrl);
     dom.badgeSearch.addEventListener("input", () => {
       searchTerm = dom.badgeSearch.value.trim().toLowerCase();
-      renderCollection();
+      clearTimeout(collectionSearchTimer);
+      collectionSearchTimer = setTimeout(renderCollection, LOW_POWER_MODE ? 180 : 90);
     });
 
     dom.filterTabs.forEach((button) => {
@@ -5453,7 +5476,8 @@
     const result = await evaluationPromise;
     applyRollResult(result);
     syncLeaderboard(false, result);
-    renderAll();
+    renderHeader();
+    renderRollPanel();
     renderLastResult(result);
     celebrateBadges(result);
 
@@ -5931,7 +5955,7 @@
           tile.textContent = randomChar(alphabet);
         }
       });
-    }, 58);
+    }, LOW_POWER_MODE ? 96 : 72);
 
     try {
       await sleep(620);
@@ -6155,6 +6179,7 @@
   }
 
   function renderCollection() {
+    collectionRenderToken += 1;
     const discovered = getDiscoveredBadges();
     const discoveredIds = new Set(discovered.map((badge) => badge.id));
     const progress = BADGES.length ? discovered.length / BADGES.length : 0;
@@ -6188,9 +6213,37 @@
       return;
     }
 
-    visibleBadges.forEach((badge) => {
-      dom.badgeGrid.appendChild(createBadgeCard(badge, discoveredIds.has(badge.id)));
-    });
+    renderBadgeGridBatched(visibleBadges, discoveredIds, collectionRenderToken);
+  }
+
+  function renderBadgeGridBatched(visibleBadges, discoveredIds, token) {
+    const batchSize = LOW_POWER_MODE ? 12 : 24;
+    let index = 0;
+
+    const progressNode = document.createElement("div");
+    progressNode.className = "grid-progress-note";
+
+    const renderBatch = () => {
+      if (token !== collectionRenderToken || activePage !== "collection") return;
+
+      const fragment = document.createDocumentFragment();
+      const end = Math.min(index + batchSize, visibleBadges.length);
+      for (; index < end; index += 1) {
+        const badge = visibleBadges[index];
+        fragment.appendChild(createBadgeCard(badge, discoveredIds.has(badge.id)));
+      }
+
+      if (progressNode.isConnected) progressNode.remove();
+      dom.badgeGrid.appendChild(fragment);
+
+      if (index < visibleBadges.length) {
+        progressNode.textContent = `Loading badge archive ${index} / ${visibleBadges.length}...`;
+        dom.badgeGrid.appendChild(progressNode);
+        scheduleBackgroundTask(renderBatch, 16);
+      }
+    };
+
+    renderBatch();
   }
 
   function createBadgeCard(badge, unlocked) {
@@ -6240,6 +6293,8 @@
 
   function renderBadgeOdds(badge) {
     const digitBadge = isNumberBadge(badge);
+    const cacheKey = `${badge.id}:${digitBadge ? "D" : "L"}`;
+    if (badgeOddsCache.has(cacheKey)) return badgeOddsCache.get(cacheKey);
     const lengths = digitBadge ? [2, 3, 4, 6] : [4, 5, 6];
     const title = digitBadge ? "DIGIT ODDS" : "LETTER ODDS";
     const chips = lengths
@@ -6248,7 +6303,9 @@
         return `<span><b>${label}</b>${escapeHtml(getBadgeOddsLabel(badge, length, digitBadge))}</span>`;
       })
       .join("");
-    return `<div class="badge-odds"><small>${title}</small><div>${chips}</div></div>`;
+    const html = `<div class="badge-odds"><small>${title}</small><div>${chips}</div></div>`;
+    badgeOddsCache.set(cacheKey, html);
+    return html;
   }
 
   function getBadgeOddsLabel(badge, length, digitBadge) {
@@ -6403,6 +6460,7 @@
 
   function renderCutsceneIndex() {
     if (!dom.cutsceneIndexGrid) return;
+    cutsceneRenderToken += 1;
 
     const sceneBadges = BADGES
       .filter((badge) => (RARITIES[badge.rarity]?.rank || 0) >= RARITIES.epic.rank)
@@ -6415,7 +6473,22 @@
     dom.cutsceneRing.style.setProperty("--progress", `${Math.round(progress * 360)}deg`);
     dom.cutsceneIndexGrid.innerHTML = "";
 
-    sceneBadges.forEach((badge) => {
+    renderCutsceneCardsBatched(sceneBadges, cutsceneRenderToken);
+  }
+
+  function renderCutsceneCardsBatched(sceneBadges, token) {
+    const batchSize = LOW_POWER_MODE ? 10 : 20;
+    let index = 0;
+    const progressNode = document.createElement("div");
+    progressNode.className = "grid-progress-note";
+
+    const renderBatch = () => {
+      if (token !== cutsceneRenderToken || activePage !== "cutscenes") return;
+
+    const fragment = document.createDocumentFragment();
+      const end = Math.min(index + batchSize, sceneBadges.length);
+      for (; index < end; index += 1) {
+        const badge = sceneBadges[index];
       const rarity = RARITIES[badge.rarity] || RARITIES.epic;
       const style = getCutsceneStyleForBadge(badge);
       const unlocked = Boolean(state.badges[badge.id]);
@@ -6435,8 +6508,19 @@
       card.querySelector("button").addEventListener("click", () => {
         showBadgeCutscene(createPreviewResultForBadge(badge), badge, true);
       });
-      dom.cutsceneIndexGrid.appendChild(card);
-    });
+      fragment.appendChild(card);
+      }
+      if (progressNode.isConnected) progressNode.remove();
+    dom.cutsceneIndexGrid.appendChild(fragment);
+
+      if (index < sceneBadges.length) {
+        progressNode.textContent = `Loading cutscene archive ${index} / ${sceneBadges.length}...`;
+        dom.cutsceneIndexGrid.appendChild(progressNode);
+        scheduleBackgroundTask(renderBatch, 16);
+      }
+    };
+
+    renderBatch();
   }
 
   function createPreviewResultForBadge(badge) {
@@ -6474,6 +6558,7 @@
     dom.upgradeGrid.innerHTML = "";
     dom.upgradeGrid.className = "upgrade-sections";
 
+    const sectionFragment = document.createDocumentFragment();
     UPGRADE_SECTIONS.forEach((section) => {
       const upgrades = UPGRADES.filter((upgrade) => getUpgradeSection(upgrade) === section.id);
       if (!upgrades.length) return;
@@ -6535,8 +6620,9 @@
       });
 
       shell.appendChild(grid);
-      dom.upgradeGrid.appendChild(shell);
+      sectionFragment.appendChild(shell);
     });
+    dom.upgradeGrid.appendChild(sectionFragment);
 
     dom.upgradeCount.textContent = `${ownedCount} / ${UPGRADES.length}`;
     dom.upgradeProgress.style.width = `${Math.round((ownedCount / UPGRADES.length) * 100)}%`;
@@ -6937,7 +7023,7 @@
       state.leaderboard.lastSyncStatus = "Saved to local demo board";
       state.leaderboard.lastSyncAt = Date.now();
       saveState();
-      renderLeaderboard();
+      if (activePage === "leaderboard") renderLeaderboard();
       if (manual) showToast("Best roll saved to the local demo leaderboard.");
       return;
     }
@@ -6958,14 +7044,14 @@
       state.leaderboard.lastSyncStatus = "Synced globally";
       state.leaderboard.lastSyncAt = Date.now();
       saveState();
-      renderLeaderboard();
+      if (activePage === "leaderboard") renderLeaderboard();
       if (manual) showToast("Best roll synced to backend leaderboard.");
     } catch (error) {
       console.warn("Leaderboard backend unavailable; saving locally.", error);
       upsertLocalLeaderboard(row);
       state.leaderboard.lastSyncStatus = "Backend unavailable; local fallback";
       saveState();
-      renderLeaderboard();
+      if (activePage === "leaderboard") renderLeaderboard();
       if (manual) showToast("Backend unavailable, saved locally instead.", "error");
     }
   }
@@ -7097,12 +7183,14 @@
     if (result.words.length) {
       dom.wordFind.classList.remove("hidden");
       dom.wordChips.innerHTML = "";
+      const wordFragment = document.createDocumentFragment();
       result.words.slice(0, 8).forEach(({ word }) => {
         const chip = document.createElement("span");
         chip.className = "word-chip";
         chip.textContent = word;
-        dom.wordChips.appendChild(chip);
+        wordFragment.appendChild(chip);
       });
+      dom.wordChips.appendChild(wordFragment);
     } else {
       dom.wordFind.classList.add("hidden");
       dom.wordChips.innerHTML = "";
@@ -7116,6 +7204,7 @@
       return;
     }
 
+    const badgeFragment = document.createDocumentFragment();
     result.earnedBadges.forEach((earned) => {
       const badge = BADGES.find((item) => item.id === earned.id) || earned;
       const rarity = RARITIES[earned.rarity];
@@ -7139,8 +7228,9 @@
         <b>${escapeHtml(valueText)}</b>
       `;
       row.querySelector("div")?.insertAdjacentHTML("beforeend", renderBadgeTileStrip(result, earned));
-      dom.earnedList.appendChild(row);
+      badgeFragment.appendChild(row);
     });
+    dom.earnedList.appendChild(badgeFragment);
   }
 
   function renderBadgeTileStrip(result, badge) {
@@ -7882,9 +7972,13 @@
   function showBadgeBurstQueue(result) {
     const alphabetBadges = sortBadgesWorstToBest((result.earnedBadges || []).filter((badge) => !isNumberBadge(badge)));
     const numberBadges = sortBadgesWorstToBest((result.earnedBadges || []).filter(isNumberBadge));
+    const alphaLimit = Math.max(4, Math.ceil(BADGE_FEED_LIMIT * 0.62));
+    const numberLimit = Math.max(3, BADGE_FEED_LIMIT - alphaLimit);
+    const alphabetFeed = buildBadgeFeedItems(alphabetBadges, "alphabet", alphaLimit);
+    const numberFeed = buildBadgeFeedItems(numberBadges, "numbers", numberLimit);
     const queue = [
-      ...alphabetBadges.map((badge) => ({ badge, lane: "alphabet" })),
-      ...numberBadges.map((badge) => ({ badge, lane: "numbers" })),
+      ...alphabetFeed,
+      ...numberFeed,
     ];
 
     if (!queue.length) return;
@@ -7929,21 +8023,39 @@
 
     dom.badgeBurstLayer.appendChild(panel);
 
-    queue.forEach(({ badge, lane }, index) => {
+    queue.forEach((item, index) => {
       setTimeout(() => {
+        const { badge, lane } = item;
         setActiveLane(lane);
         const stack = panel.querySelector(`[data-feed-stack="${lane}"]`);
         if (!stack) return;
-        stack.appendChild(createBadgeFeedCard(badge, lane));
-        playTone(RARITIES[badge.rarity]?.rank >= 3 || badge.isNew ? "rare" : "reward");
-      }, index * 360);
+        if (item.summary) {
+          stack.appendChild(createBadgeFeedSummaryCard(item.count, lane));
+        } else {
+          stack.appendChild(createBadgeFeedCard(badge, lane));
+          playTone(RARITIES[badge.rarity]?.rank >= 3 || badge.isNew ? "rare" : "reward");
+        }
+      }, index * (LOW_POWER_MODE ? 260 : 340));
     });
 
     setTimeout(() => {
       if (!panel.isConnected) return;
       panel.classList.add("closing");
       setTimeout(() => panel.remove(), 260);
-    }, Math.max(6000, queue.length * 360 + 5200));
+    }, Math.max(5200, queue.length * (LOW_POWER_MODE ? 260 : 340) + 4300));
+  }
+
+  function buildBadgeFeedItems(badges, lane, limit) {
+    if (badges.length <= limit) return badges.map((badge) => ({ badge, lane }));
+
+    const lowCount = Math.max(2, Math.floor(limit * 0.38));
+    const highCount = Math.max(2, limit - lowCount);
+    const hiddenCount = Math.max(0, badges.length - lowCount - highCount);
+    return [
+      ...badges.slice(0, lowCount).map((badge) => ({ badge, lane })),
+      { summary: true, count: hiddenCount, lane },
+      ...badges.slice(-highCount).map((badge) => ({ badge, lane })),
+    ];
   }
 
   function sortBadgesWorstToBest(badges) {
@@ -7972,6 +8084,20 @@
         <strong>${escapeHtml(badge.name)}</strong>
       </span>
       <b>${escapeHtml(valueText)}</b>
+    `;
+    return card;
+  }
+
+  function createBadgeFeedSummaryCard(count, lane) {
+    const card = document.createElement("article");
+    card.className = `badge-feed-card badge-feed-summary ${lane}`;
+    card.innerHTML = `
+      <span class="badge-burst-icon">+${formatNumber(count)}</span>
+      <span>
+        <small>ARCHIVED INSTANTLY</small>
+        <strong>${formatNumber(count)} more badge${count === 1 ? "" : "s"}</strong>
+      </span>
+      <b>saved</b>
     `;
     return card;
   }
@@ -8104,6 +8230,11 @@
     if (!state.settings.sound) return;
 
     try {
+      const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const minGap = type === "tick" ? 55 : type === "reward" ? 85 : 120;
+      if (nowMs - lastToneAt < minGap) return;
+      lastToneAt = nowMs;
+
       audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
       const now = audioContext.currentTime;
       const osc = audioContext.createOscillator();
@@ -8141,9 +8272,11 @@
   }
 
   function launchConfetti(tier) {
+    if (PREFERS_REDUCED_MOTION) return;
     resizeConfettiCanvas();
     const ctx = dom.confettiCanvas.getContext("2d");
-    const count = tier === "glitched" || tier === "mythic" ? 150 : tier === "legendary" ? 120 : 85;
+    const baseCount = tier === "glitched" || tier === "mythic" ? 150 : tier === "legendary" ? 120 : 85;
+    const count = LOW_POWER_MODE ? Math.floor(baseCount * 0.42) : baseCount;
     const colors = ["#0b6cff", "#16c784", "#ffffff", "#8b5cf6", "#ffcf5c"];
 
     confettiParticles = Array.from({ length: count }, () => ({
@@ -8190,7 +8323,7 @@
   }
 
   function resizeConfettiCanvas() {
-    const dpr = Math.max(window.devicePixelRatio || 1, 1);
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), LOW_POWER_MODE ? 1.25 : 1.75);
     dom.confettiCanvas.width = Math.floor(window.innerWidth * dpr);
     dom.confettiCanvas.height = Math.floor(window.innerHeight * dpr);
     const ctx = dom.confettiCanvas.getContext("2d");
@@ -8199,13 +8332,16 @@
 
   function startCountdown() {
     if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-      renderCooldown();
-      renderNextRollStat();
-      if (state.lastResult) {
+    const tick = () => {
+      if (document.hidden) return;
+      if (activePage === "roll") renderCooldown();
+      if (activePage === "stats") renderNextRollStat();
+      if (state.lastResult && activePage === "roll") {
         dom.resultTime.textContent = getRelativeTime(state.lastResult.at);
       }
-    }, 1000);
+    };
+    tick();
+    countdownInterval = setInterval(tick, 1000);
   }
 
   function getDerivedStats() {
@@ -8734,14 +8870,15 @@
   }
 
   function normalizeState(saved) {
+    const baseState = cloneDefaultState();
     const normalized = {
-      ...cloneDefaultState(),
+      ...baseState,
       ...saved,
-      badges: { ...cloneDefaultState().badges, ...(saved.badges || {}) },
-      upgrades: { ...cloneDefaultState().upgrades, ...(saved.upgrades || {}) },
-      account: { ...cloneDefaultState().account, ...(saved.account || {}) },
-      leaderboard: { ...cloneDefaultState().leaderboard, ...(saved.leaderboard || {}) },
-      settings: { ...cloneDefaultState().settings, ...(saved.settings || {}) },
+      badges: { ...baseState.badges, ...(saved.badges || {}) },
+      upgrades: { ...baseState.upgrades, ...(saved.upgrades || {}) },
+      account: { ...baseState.account, ...(saved.account || {}) },
+      leaderboard: { ...baseState.leaderboard, ...(saved.leaderboard || {}) },
+      settings: { ...baseState.settings, ...(saved.settings || {}) },
     };
 
     normalized.glyphs = Math.max(0, Number(normalized.glyphs) || 0);
