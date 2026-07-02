@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b6cff">
+  <meta name="description" content="AlphaRNG — roll letters, discover patterns, and collect rare badges.">
+  <title>AlphaRNG</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="confettiCanvas" aria-hidden="true"></canvas>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#roll" data-page-link="roll" aria-label="AlphaRNG home">
+        <span class="brand-mark" aria-hidden="true"><span>A</span></span>
+        <span class="brand-copy">
+          <strong>AlphaRNG</strong>
+          <small>ROLL THE UNLIKELY</small>
+        </span>
+      </a>
+
+      <div class="player-strip" aria-label="Player resources">
+        <div class="resource-pill glyph-pill" title="Spendable Glyphs">
+          <span class="resource-icon">◆</span>
+          <span><b id="headerGlyphs">0</b><small>Glyphs</small></span>
+        </div>
+        <div class="resource-pill" title="Current Luck multiplier">
+          <span class="resource-icon luck-icon">✦</span>
+          <span><b id="headerLuck">1.00×</b><small>Luck</small></span>
+        </div>
+        <button class="resource-pill account-pill" id="accountPill" type="button" data-page="account" title="Open account">
+          <span class="resource-icon account-icon">@</span>
+          <span><b id="headerAccountName">Guest</b><small>Account</small></span>
+        </button>
+        <button class="icon-button" id="soundToggle" type="button" aria-label="Turn sound off" title="Sound on">
+          <svg class="sound-on-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.1-3.8v7.6a4.5 4.5 0 0 0 2.1-3.8Zm-2.1-8v2.1a7 7 0 0 1 0 11.8V20a9 9 0 0 0 0-16Z"/></svg>
+          <svg class="sound-off-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m19.8 22.6-3.1-3.1a9 9 0 0 1-2.3.5v-2.1c.3-.1.5-.1.7-.2l-2.1-2.1V19l-5-4H4V9h3.4L1.4 3 2.8 1.6l18.4 19.6-1.4 1.4ZM13 5v5.2L9.7 6.7 13 5Zm3.5 7c0-.8-.2-1.5-.6-2.1l-1.5-1.6v-.1a4.5 4.5 0 0 1 0 7.6v-2.9l1.4 1.5c.4-.7.7-1.5.7-2.4Zm4.5 0a9 9 0 0 0-6.6-8.7v2.1a7 7 0 0 1 3.7 11.9l1.4 1.5A9 9 0 0 0 21 12Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="Main navigation">
+      <nav class="nav-list">
+        <button class="nav-item active" type="button" data-page="roll" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm-9 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>
+          <span>Roll</span>
+        </button>
+        <button class="nav-item" type="button" data-page="collection">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.3-4.5 2.3.9-5-3.6-3.5 5-.7L12 2Zm-7 17h14v2H5v-2Z"/></svg>
+          <span>Badges</span>
+          <b class="nav-count" id="navBadgeCount">0</b>
+        </button>
+        <button class="nav-item" type="button" data-page="upgrades">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 2h2v4.1a6 6 0 0 1 4.9 4.9H22v2h-4.1a6 6 0 0 1-4.9 4.9V22h-2v-4.1A6 6 0 0 1 6.1 13H2v-2h4.1A6 6 0 0 1 11 6.1V2Zm1 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+          <span>Upgrades</span>
+        </button>
+        <button class="nav-item" type="button" data-page="cutscenes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm3 2 5 3-5 3V9Z"/></svg>
+          <span>Scenes</span>
+        </button>
+        <button class="nav-item" type="button" data-page="stats">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16v2H2V3h2v16Zm3-2v-6h3v6H7Zm5 0V6h3v11h-3Zm5 0V9h3v8h-3Z"/></svg>
+          <span>Stats</span>
+        </button>
+        <button class="nav-item" type="button" data-page="leaderboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21h10v-2H7v2Zm2-4h6V9H9v8Zm-6-6a4 4 0 0 0 4 4V8H5V5h2V3H3v8Zm14 4a4 4 0 0 0 4-4V3h-4v2h2v3h-2v7Zm-8-6h6V3H9v6Z"/></svg>
+          <span>Leaders</span>
+        </button>
+        <button class="nav-item" type="button" data-page="account">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
+          <span>Account</span>
+        </button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="online-dot"></span>
+        <span>Saved locally</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="page active" id="page-roll" data-page-section="roll">
+        <div class="page-heading roll-heading">
+          <div>
+            <span class="eyebrow">SEQUENCE CHAMBER</span>
+            <h1>What will the alphabet give you?</h1>
+            <p>Roll a sequence. Spot impossible patterns. Build your collection.</p>
+          </div>
+          <div class="mode-chip mixed" id="modeChip"><span></span> Dual Dice Engine</div>
+        </div>
+
+        <div class="roll-layout">
+          <section class="roll-console card" id="rollConsole">
+            <div class="console-topline">
+              <div class="ready-status" id="readyStatus"><span></span><b>ROLL READY</b></div>
+              <div class="cooldown-label" id="cooldownLabel">Next roll available now</div>
+            </div>
+
+            <div class="sequence-stage" id="sequenceStage" aria-live="polite" aria-label="Rolled sequence">
+              <div class="tile-row" id="tileRow"></div>
+              <p class="sequence-prompt" id="sequencePrompt">Your next sequence is waiting.</p>
+            </div>
+
+            <div class="roll-mode-switch combo-mode-switch" id="rollModeSwitch" aria-label="Combined roll lanes">
+              <button class="active" id="letterModeButton" type="button" data-roll-mode="letters">
+                <span>ABC</span>
+                Alphabet lane
+              </button>
+              <button class="active" id="numberModeButton" type="button" data-roll-mode="numbers">
+                <span>123</span>
+                Multiplier lane
+              </button>
+            </div>
+
+            <div class="roll-action">
+              <button class="roll-button" id="rollButton" type="button">
+                <span class="roll-button-shine"></span>
+                <span class="roll-label">ROLL</span>
+                <small id="rollButtonHint">4 letters + 2 digits</small>
+              </button>
+              <button class="admin-preview-button hidden" id="adminCutscenePreview" type="button">Preview badge cutscene</button>
+              <div class="countdown-wrap hidden" id="countdownWrap">
+                <span>RECHARGING</span>
+                <strong id="countdownTimer">30:00</strong>
+                <div class="timer-track"><i id="timerProgress"></i></div>
+              </div>
+            </div>
+
+            <div class="console-foot">
+              <span><i>◆</i> Base reward <b>25 Glyphs</b></span>
+              <span><i>✦</i> Luck multiplier <b id="consoleLuck">1.00×</b></span>
+              <span><i>#</i> Last digit boost <b id="consoleAlphaBoost">1.00×</b></span>
+            </div>
+
+            <div class="chamber-guide" aria-label="How this roll works">
+              <article>
+                <b>Alphabet badges</b>
+                <span>create Glyphs directly</span>
+              </article>
+              <article>
+                <b>Digit badges</b>
+                <span>multiply this roll only</span>
+              </article>
+              <article>
+                <b>Rare badge hits</b>
+                <span>unlock dramatic scenes</span>
+              </article>
+            </div>
+          </section>
+
+          <aside class="roll-side">
+            <section class="result-card card" id="resultCard">
+              <div class="empty-result" id="emptyResult">
+                <div class="empty-orbit"><span>?</span></div>
+                <h2>No roll yet</h2>
+                <p>Your score, tier, words, and badges will appear here.</p>
+              </div>
+
+              <div class="result-content hidden" id="resultContent" aria-live="polite">
+                <div class="result-tier-row">
+                  <span class="tier-pill" id="resultTier">COMMON</span>
+                  <span class="result-time" id="resultTime">JUST NOW</span>
+                </div>
+                <div class="result-roll-display" id="resultRollDisplay">------ × --</div>
+                <div class="reward-block">
+                  <span>ROLL BREAKDOWN</span>
+                  <div class="roll-math-grid">
+                    <article>
+                      <small>Alphabet Glyphs</small>
+                      <strong><i>◆</i><span id="resultAlphaGlyphs">0</span></strong>
+                    </article>
+                    <article class="multiplier-math">
+                      <small>Digit Multiplier</small>
+                      <strong><i>×</i><span id="resultDigitMultiplier">1.00</span></strong>
+                    </article>
+                    <article class="final-math">
+                      <small>Final Glyphs</small>
+                      <strong><i>◆</i><span id="resultFinalGlyphs">0</span></strong>
+                    </article>
+                  </div>
+                  <small id="resultFormula">Alphabet badges × digit lane + base</small>
+                </div>
+                <div class="word-find hidden" id="wordFind">
+                  <span>WORDS DETECTED</span>
+                  <div id="wordChips"></div>
+                </div>
+                <div class="earned-list-wrap">
+                  <div class="section-label"><span>BADGE BREAKDOWN</span><b id="earnedCount">0</b></div>
+                  <div class="earned-list" id="earnedList"></div>
+                </div>
+                <button class="share-button" id="shareButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.9a3 3 0 0 0 0-2.6l6.7-3.9A3 3 0 1 0 15 5c0 .1 0 .2.1.3L8.4 9.2a3 3 0 1 0 0 5.6l6.7 3.9v.3a3 3 0 1 0 3-3Z"/></svg>
+                  Copy roll summary
+                </button>
+              </div>
+            </section>
+
+            <section class="mini-card streak-card">
+              <div class="mini-icon">⌁</div>
+              <div><span>TOTAL ROLLS</span><strong id="quickRolls">0</strong></div>
+              <div class="mini-divider"></div>
+              <div><span>BEST ROLL</span><strong id="quickBest">—</strong></div>
+            </section>
+
+            <section class="mini-card objective-card">
+              <div class="mini-icon">⌁</div>
+              <div class="objective-copy">
+                <span>NEXT OBJECTIVE</span>
+                <strong id="nextGoalTitle">Find your first badge</strong>
+                <small id="nextGoalHint">Roll to start building your archive.</small>
+                <div class="objective-progress"><i id="nextGoalProgress"></i></div>
+                <em id="nextGoalMeta">0% ready</em>
+              </div>
+            </section>
+
+            <section class="mini-card live-card">
+              <div class="mini-icon">@</div>
+              <div>
+                <span>LIVE STATUS</span>
+                <strong id="liveSyncTitle">Local save active</strong>
+                <small id="liveSyncHint">Email login can be configured later.</small>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-collection" data-page-section="collection">
+        <div class="page-heading split-heading">
+          <div>
+            <span class="eyebrow">THE ARCHIVE</span>
+            <h1>Badge collection</h1>
+            <p>Every pattern has a signature. Find them all.</p>
+          </div>
+          <div class="collection-progress-card">
+            <div><strong id="collectionProgressText">0 / 0</strong><span>DISCOVERED</span></div>
+            <div class="ring-progress" id="collectionRing"><span id="collectionPercent">0%</span></div>
+          </div>
+        </div>
+
+        <div class="collection-toolbar card">
+          <div class="filter-tabs" role="group" aria-label="Filter badges">
+            <button class="filter-tab active" type="button" data-filter="all">All</button>
+            <button class="filter-tab" type="button" data-filter="unlocked">Discovered</button>
+            <button class="filter-tab" type="button" data-filter="locked">Locked</button>
+          </div>
+          <label class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.2-5.2a7 7 0 1 0-1.4 1.4l5.2 5.2 1.4-1.4ZM5 10.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z"/></svg>
+            <input id="badgeSearch" type="search" placeholder="Search badges" autocomplete="off">
+          </label>
+        </div>
+
+        <div class="lexicon-note">
+          <span class="lexicon-icon">Aa</span>
+          <div><strong>Local + Gemini-ready Lexicon</strong><p>Word badges use the built-in dictionary by default. Connect a backend to add Gemini word checks without exposing an API key.</p></div>
+          <span class="privacy-chip">SAFE FALLBACK</span>
+        </div>
+
+        <div class="badge-grid" id="badgeGrid"></div>
+      </section>
+
+      <section class="page" id="page-cutscenes" data-page-section="cutscenes">
+        <div class="page-heading split-heading">
+          <div>
+            <span class="eyebrow">THEATER INDEX</span>
+            <h1>Badge cutscene archive</h1>
+            <p>Cutscenes only trigger for very rare badge hits. Preview every badge reveal style here.</p>
+          </div>
+          <div class="collection-progress-card">
+            <div><strong id="cutsceneProgressText">0 / 0</strong><span>VERY RARE SCENES</span></div>
+            <div class="ring-progress" id="cutsceneRing"><span id="cutscenePercent">0%</span></div>
+          </div>
+        </div>
+
+        <div class="cutscene-note card">
+          <span>🎬</span>
+          <div>
+            <strong>Epic+ badge cutscenes only</strong>
+            <p>Common, Uncommon, and normal Rare badges use quick badge pops. Full scenes are reserved for Epic, Legendary, Mythic, and Glitched badge discoveries.</p>
+          </div>
+        </div>
+
+        <div class="cutscene-index-grid" id="cutsceneIndexGrid"></div>
+      </section>
+
+      <section class="page" id="page-upgrades" data-page-section="upgrades">
+        <div class="page-heading split-heading">
+          <div>
+            <span class="eyebrow">DICE FORGE</span>
+            <h1>Dice upgrades</h1>
+            <p>Spend Glyphs only to add more alphabet and digit dice. Badges and cutscenes are never upgrade-locked.</p>
+          </div>
+          <div class="forge-wallet"><span>AVAILABLE</span><strong><i>◆</i> <b id="forgeGlyphs">0</b></strong><small>Glyphs</small></div>
+        </div>
+
+        <div class="upgrade-legend">
+          <span><i class="legend-dot owned"></i>Owned</span>
+          <span><i class="legend-dot available"></i>Available</span>
+          <span><i class="legend-dot locked"></i>Locked</span>
+        </div>
+
+        <section class="upgrade-tree card" id="upgradeTree">
+          <div class="tree-background" aria-hidden="true"></div>
+          <div class="upgrade-grid" id="upgradeGrid"></div>
+        </section>
+        <p class="tree-footnote">Only dice count upgrades remain. AlphaRNG has no real-money purchases or betting.</p>
+      </section>
+
+      <section class="page" id="page-stats" data-page-section="stats">
+        <div class="page-heading">
+          <span class="eyebrow">SIGNAL REPORT</span>
+          <h1>Your statistics</h1>
+          <p>A permanent record of your strangest sequences.</p>
+        </div>
+
+        <div class="stats-hero-grid">
+          <article class="stat-hero blue-stat"><span class="stat-icon">↻</span><div><small>TOTAL ROLLS</small><strong id="statRolls">0</strong><p>Sequences generated</p></div></article>
+          <article class="stat-hero green-stat"><span class="stat-icon">◆</span><div><small>LIFETIME GLYPHS</small><strong id="statGlyphs">0</strong><p>Before upgrade spending</p></div></article>
+          <article class="stat-hero purple-stat"><span class="stat-icon">✦</span><div><small>CURRENT LUCK</small><strong id="statLuck">1.00×</strong><p>Badge reward multiplier</p></div></article>
+          <article class="stat-hero orange-stat"><span class="stat-icon">⌁</span><div><small>BADGES FOUND</small><strong id="statBadges">0 / 0</strong><p id="statBadgePercent">0% of the archive</p></div></article>
+        </div>
+
+        <div class="stats-detail-grid">
+          <section class="card stat-panel">
+            <div class="panel-title"><div><span>◆</span><h2>Best roll</h2></div><span class="tier-pill" id="bestTier">—</span></div>
+            <div class="best-sequence" id="bestSequence">— — — — — —</div>
+            <div class="best-meta"><span>VALUE<strong id="bestValue">0 Glyphs</strong></span><span>BADGES<strong id="bestBadges">0 earned</strong></span></div>
+          </section>
+
+          <section class="card stat-panel">
+            <div class="panel-title"><div><span>★</span><h2>Rarest discovery</h2></div></div>
+            <div class="rarest-display" id="rarestDisplay">
+              <div class="rarity-orb">?</div><div><strong>Nothing yet</strong><p>Roll to discover your first badge.</p></div>
+            </div>
+          </section>
+
+          <section class="card stat-panel progress-panel">
+            <div class="panel-title"><div><span>⌘</span><h2>Dice progress</h2></div><b id="upgradeCount">0 / 5</b></div>
+            <div class="wide-progress"><i id="upgradeProgress"></i></div>
+            <p id="upgradeProgressHint">Your first dice upgrade is waiting.</p>
+          </section>
+
+          <section class="card stat-panel next-panel">
+            <div class="panel-title"><div><span>◷</span><h2>Next roll</h2></div></div>
+            <strong id="statNextRoll">READY NOW</strong>
+            <p id="statNextHint">The sequence chamber is fully charged.</p>
+          </section>
+        </div>
+
+        <section class="danger-zone card">
+          <div><strong>Reset local progress</strong><p>Erase rolls, Glyphs, badges, and dice upgrades on this device.</p></div>
+          <button id="resetButton" type="button">Reset save</button>
+        </section>
+      </section>
+
+      <section class="page" id="page-leaderboard" data-page-section="leaderboard">
+        <div class="page-heading split-heading">
+          <div>
+            <span class="eyebrow">GLOBAL SIGNAL BOARD</span>
+            <h1>Leaderboard</h1>
+            <p>Compete for the best roll value, rarest finds, and cleanest sequence flex.</p>
+          </div>
+          <div class="leaderboard-mode-card">
+            <span id="leaderboardMode">LOCAL DEMO</span>
+            <strong id="leaderboardStatus">Backend not connected</strong>
+            <button id="leaderboardSyncButton" type="button">Sync best roll</button>
+          </div>
+        </div>
+
+        <div class="global-ready-note">
+          <span class="global-ready-icon">🌐</span>
+          <div>
+            <strong>Global-ready, not fake-global</strong>
+            <p>This static build shows a local demo board. Connect a backend endpoint to share scores worldwide, verify accounts, and run Gemini securely server-side.</p>
+          </div>
+        </div>
+
+        <section class="card leaderboard-card">
+          <div class="leaderboard-tabs" id="leaderboardTabs" aria-label="Leaderboard categories">
+            <button class="active" type="button" data-leaderboard-board="daily">Daily top roll</button>
+            <button type="button" data-leaderboard-board="weekly">Weekly top roll</button>
+            <button type="button" data-leaderboard-board="allTime">All-time top roll</button>
+            <button type="button" data-leaderboard-board="topGlyphs">Top Glyphs</button>
+            <button type="button" data-leaderboard-board="topRolls">Top rolls</button>
+          </div>
+          <div class="leaderboard-head">
+            <span>Rank</span>
+            <span>Player</span>
+            <span>Sequence</span>
+            <span>Tier</span>
+            <span id="leaderboardMetricHead">Glyphs</span>
+          </div>
+          <div class="leaderboard-rows" id="leaderboardRows"></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-account" data-page-section="account">
+        <div class="page-heading split-heading">
+          <div>
+            <span class="eyebrow">PLAYER IDENTITY</span>
+            <h1>Account & global setup</h1>
+            <p>Sign in with a magic email link. Your account, progress, and leaderboard identity are saved on the server.</p>
+          </div>
+          <div class="account-status-card" id="accountState">
+            <span>STATUS</span>
+            <strong>Guest mode</strong>
+            <small>Local device only</small>
+          </div>
+        </div>
+
+        <div class="account-layout">
+          <section class="card auth-card">
+            <div class="panel-title"><div><span>@</span><h2>Sign in</h2></div></div>
+            <p class="auth-copy" id="authModeText">Enter your email and AlphaRNG will send a private magic login link. No password required.</p>
+
+            <form class="auth-form" id="authForm">
+              <label>
+                Display name
+                <input id="displayNameInput" type="text" maxlength="22" autocomplete="nickname" placeholder="Alpha Roller">
+              </label>
+              <label>
+                Email
+                <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com">
+              </label>
+              <p id="authPasswordHelp" class="magic-privacy-note">Magic links expire quickly and are verified by the server. AlphaRNG never stores passwords in the browser.</p>
+              <div class="two-step-row magic-link-row">
+                <button id="sendCodeButton" type="button">Send magic link</button>
+              </div>
+              <p class="two-step-hint" id="twoStepHint">Use any valid email address, then check your inbox for the sign-in link.</p>
+              <div class="auth-actions">
+                <button id="signInButton" type="submit">Send magic link</button>
+                <button id="signOutButton" type="button">Sign out</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card integration-card">
+            <div class="panel-title"><div><span>AI</span><h2>Backend + Gemini</h2></div></div>
+            <p>For multiplayer, the server owns magic-link login, private sessions, cloud progress, Gemini checks, and leaderboard writes. The browser only keeps a temporary display cache.</p>
+
+            <label class="api-field">
+              Backend base URL
+              <input id="apiBaseInput" type="url" placeholder="https://your-api.example.com">
+            </label>
+            <button class="save-api-button" id="saveApiBaseButton" type="button">Save backend URL</button>
+
+            <div class="integration-list">
+              <div><span>Magic-link auth</span><strong id="integrationStatus">Local demo</strong></div>
+              <div><span>Leaderboard</span><strong id="leaderboardIntegrationStatus">Local demo</strong></div>
+              <div><span>Gemini word detector</span><strong id="geminiStatus">Local lexicon fallback</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <button class="active" type="button" data-page="roll"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm-9 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg><span>Roll</span></button>
+      <button type="button" data-page="collection"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.3-4.5 2.3.9-5-3.6-3.5 5-.7L12 2Zm-7 17h14v2H5v-2Z"/></svg><span>Badges</span></button>
+      <button type="button" data-page="upgrades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 2h2v4.1a6 6 0 0 1 4.9 4.9H22v2h-4.1a6 6 0 0 1-4.9 4.9V22h-2v-4.1A6 6 0 0 1 6.1 13H2v-2h4.1A6 6 0 0 1 11 6.1V2Zm1 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg><span>Forge</span></button>
+      <button type="button" data-page="cutscenes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm3 2 5 3-5 3V9Z"/></svg><span>Scenes</span></button>
+      <button type="button" data-page="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16v2H2V3h2v16Zm3-2v-6h3v6H7Zm5 0V6h3v11h-3Zm5 0V9h3v8h-3Z"/></svg><span>Stats</span></button>
+      <button type="button" data-page="leaderboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21h10v-2H7v2Zm2-4h6V9H9v8Zm-6-6a4 4 0 0 0 4 4V8H5V5h2V3H3v8Zm14 4a4 4 0 0 0 4-4V3h-4v2h2v3h-2v7Zm-8-6h6V3H9v6Z"/></svg><span>Lead</span></button>
+      <button type="button" data-page="account"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg><span>Acct</span></button>
+    </nav>
+  </div>
+
+  <div class="badge-burst-layer" id="badgeBurstLayer" aria-live="polite"></div>
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <div class="modal-backdrop hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="confirm-modal">
+      <div class="modal-icon">!</div>
+      <h2 id="confirmTitle">Reset all progress?</h2>
+      <p>This permanently clears your local AlphaRNG save. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelReset" type="button">Keep progress</button>
+        <button class="modal-confirm" id="confirmReset" type="button">Reset everything</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "alpharng",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AlphaRNG live browser game with server-side auth, leaderboard, and Gemini roll analysis hooks.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
